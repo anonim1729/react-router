@@ -11,6 +11,9 @@ import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import api from './api/posts';
 import EditPost from './EditPost';
+import useWindowSize from './hooks/useWindowSize';
+import useAxiosFetch from './hooks/useAxiosFetch';
+
 
 function App() {
   const [posts, setPosts] = useState([])
@@ -21,27 +24,33 @@ function App() {
   const [editTitle, setEditTitle] = useState('');
   const [editBody, setEditBody] = useState('');
   const navigate = useNavigate();
+  const { width } = useWindowSize();
+  const { data, fetchError, isLoading } = useAxiosFetch('http://localhost:3500/posts');
+
+  // useEffect(() => {
+  //   const fetchPosts = async () => {
+  //     try {
+  //       const response = await api.get('/posts');
+  //       setPosts(response.data);
+  //     } catch (err) {
+  //       if (err.response) {
+  //         //Not in the 200 response range
+  //         console.log(err.response.data)
+  //         console.log(err.response.status)
+  //         console.log(err.response.headers)
+  //       }
+  //       else {
+  //         console.log(`Error :${err.message}`);
+  //       }
+  //     }
+  //   }
+
+  //   fetchPosts();
+  // }, [])
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const response = await api.get('/posts');
-        setPosts(response.data);
-      } catch (err) {
-        if (err.response) {
-          //Not in the 200 response range
-          console.log(err.response.data)
-          console.log(err.response.status)
-          console.log(err.response.headers)
-        }
-        else {
-          console.log(`Error :${err.message}`);
-        }
-      }
-    }
-
-    fetchPosts();
-  }, [])
+    setPosts(data);
+  }, [data]);
 
   useEffect(() => {
     const filteredPosts = posts.filter(post => (post.title && ((post.title).toLowerCase()).includes(search.toLowerCase())) || (post.title && ((post.body).toLowerCase()).includes(search.toLowerCase())))
@@ -79,7 +88,7 @@ function App() {
       body: editBody
     }
     try {
-      const response = api.put(`/posts/${id}`, updatedPost);
+      const response = await api.put(`/posts/${id}`, updatedPost);
       setPosts(posts.map(post => post.id === id ? { ...response.data } : post));
       setEditTitle('');
       setEditBody('');
@@ -102,14 +111,19 @@ function App() {
   }
   return (
     <div className="App">
-      <Header title="React JS Blog" />
+      <Header title="React JS Blog"
+        width={width}
+      />
       <Nav
         search={search}
         setSearch={setSearch}
       />
 
       <Routes>
-        <Route path="/" element={<Home posts={searchResults} />} />
+        <Route path="/" element={<Home
+          fetchError={fetchError}
+          isLoading={isLoading}
+          posts={searchResults} />} />
         <Route path="/post" element={<NewPost
           handleSubmit={handleSubmit}
           postTitle={postTitle}
